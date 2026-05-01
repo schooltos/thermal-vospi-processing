@@ -1,0 +1,17 @@
+# build
+main
+*.o
+
+# test data
+testdata/
+output/
+
+# macOS
+.DS_Store
+
+# ffmpeg outputs
+*.mp4
+*.bin
+
+# temp
+*.log
