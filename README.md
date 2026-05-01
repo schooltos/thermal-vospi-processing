@@ -90,7 +90,7 @@ The default configuration prioritizes stability and visual clarity for dynamic s
 cfg.enable_bad_pixel_correction = 1;
 cfg.enable_denoise = 1;
 cfg.enable_normalize = 1;
-cfg.enable_contrast = 0;
+cfg.enable_contrast = 1;
 ```
 
 A spatial median 3x3 filter is used for denoising instead of temporal IIR filtering. This removes visible ghosting artifacts in moving scenes while still reducing image noise.
