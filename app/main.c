@@ -4,6 +4,7 @@
 #include "app_pipeline.h"
 #include "input/source_emulator.h"
 #include "output/output_image.h"
+#include "input/vospi_parser.h"
 
 int main(void)
 {
@@ -29,9 +30,26 @@ int main(void)
 
     while (1) {
         read_status = source_emulator_read_packet(&packet);
-        printf("read_status = %d, packet_id = 0x%04X\n",
-            read_status,
-            packet.packet_id);
+
+        if (read_status == 0) {
+            VoSPIPacketInfo info = vospi_parse_packet(&packet);
+
+            printf(
+                "read_status=%d, header=[%02X %02X %02X %02X], "
+                "valid=%u, discard=%u, segment=%u, packet=%u\n",
+                read_status,
+                packet.header[0],
+                packet.header[1],
+                packet.header[2],
+                packet.header[3],
+                info.valid,
+                info.discard,
+                info.segment,
+                info.packet_number
+            );
+        } else {
+            printf("read_status=%d\n", read_status);
+        }
 
         if (read_status != 0) {
             break;

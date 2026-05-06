@@ -10,8 +10,7 @@
  * packet_id і crc, а корисні дані — окремо.
  */
 typedef struct {
-    uint16_t packet_id;
-    uint16_t crc;
+    uint8_t header[VOSPI_HEADER_SIZE];
     uint8_t payload[VOSPI_PAYLOAD_SIZE];
 } VoSPIPacket;
 

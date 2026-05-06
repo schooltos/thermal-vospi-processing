@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "core/types.h"
 #include "core/config.h"
+#include "input/vospi_parser.h"
 
 /*
  * Спрощене кодування packet_id для програмної емуляції:
