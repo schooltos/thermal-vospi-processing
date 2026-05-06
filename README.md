@@ -1,47 +1,116 @@
-# Thermal VoSPI Processing Pipeline
+# Thermal VoSPI-Like Processing Pipeline
 
-This project implements a complete thermal image processing pipeline designed for embedded systems and real-time thermal imaging applications. The system converts an input thermal video into a VoSPI-like packet stream, reconstructs frames from packetized data, applies image processing algorithms, exports processed frames, and rebuilds the final output video.
+This project implements a thermal image processing pipeline for packet-based thermal frame reconstruction and embedded thermal imaging experiments.
 
-The project was developed as a modular software prototype for thermal image processing systems and is prepared for further integration with real thermal sensors such as FLIR Lepton.
+The system emulates a FLIR Lepton-like VoSPI packet stream using prerecorded thermal video data, reconstructs thermal frames from segmented packets, applies image processing algorithms, and generates processed output video.
+
+The project was developed as a software prototype for studying thermal frame reconstruction and image enhancement techniques without requiring physical FLIR Lepton hardware.
+
+---
 
 ## Features
 
-- Thermal video to VoSPI-like `.bin` stream conversion
-- Packet-based input emulation
-- Frame reconstruction from packet stream
+- Conversion of thermal video into packetized binary stream
+- Emulation of Lepton-like packet transmission
+- VoSPI-inspired packet parser
+- Thermal frame reconstruction from segmented packet stream
 - Bad pixel correction
 - Spatial denoising using median 3x3 filtering
 - Dynamic range normalization
 - Optional contrast enhancement
-- Processed frame export in `.pgm` format
-- Automatic reconstruction of processed video using FFmpeg
-- Modular architecture prepared for future SPI/VoSPI input
+- Export of processed frames in `.pgm` format
+- Automatic reconstruction of output video using FFmpeg
+- Runtime performance metrics collection
+- Modular architecture prepared for future SPI integration
+
+---
 
 ## Pipeline Overview
 
 ```text
-Video -> stream.bin -> Emulator -> Packet Processing -> Frame Reconstruction -> Image Processing -> Output Frames -> Video
+Video
+   ↓
+stream.bin
+   ↓
+Packet Emulator
+   ↓
+VoSPI-like Packet Parser
+   ↓
+Frame Reconstruction
+   ↓
+Image Processing Pipeline
+   ↓
+Processed Frames
+   ↓
+Output Video
 ```
+
+---
 
 ## Project Structure
 
 ```text
-app/            - pipeline orchestration and control logic
-core/           - core data types and configuration
-input/          - data sources and frame reconstruction modules
-processing/     - image processing algorithms
-output/         - frame export utilities
-testdata/       - input/output data, excluded from repository
+app/
+    Pipeline orchestration and application logic
+
+core/
+    Shared types, constants and frame utilities
+
+input/
+    Packet emulator
+    VoSPI-like parser
+    Frame reconstruction logic
+
+processing/
+    Thermal image processing algorithms
+
+output/
+    Frame export utilities
+
+testdata/
+    Input videos, packet streams and generated output
+    (excluded from repository)
 ```
+
+---
+
+## Packet Format
+
+Each packet in the emulated stream contains:
+
+```text
+4 bytes   - packet header
+160 bytes - thermal payload
+```
+
+Payload contains 80 thermal pixels encoded as 16-bit big-endian values.
+
+Two packets reconstruct one image row:
+
+```text
+Packet 0 -> left half of row
+Packet 1 -> right half of row
+```
+
+A complete frame consists of:
+
+```text
+4 segments
+60 packets per segment
+240 packets per frame
+```
+
+---
 
 ## Build
 
-From the project root:
+Compile processing pipeline:
 
 ```bash
 gcc -I. app/main.c \
     app/app_pipeline.c \
     core/frame.c \
+    input/vospi_parser.c \
     input/frame_reconstructor.c \
     input/source_emulator.c \
     processing/bad_pixels.c \
@@ -52,16 +121,23 @@ gcc -I. app/main.c \
     -o main
 ```
 
-## Usage
-
-Convert video to packet stream:
+Compile video-to-stream converter:
 
 ```bash
-gcc -O2 -o video_to_stream video_to_stream.c
+gcc -I. -O2 -o video_to_stream video_to_stream.c
+```
+
+---
+
+## Usage
+
+Convert thermal video into packet stream:
+
+```bash
 ./video_to_stream input.mp4 testdata/packets/stream.bin 8
 ```
 
-Run the processing pipeline:
+Run processing pipeline:
 
 ```bash
 ./main
@@ -73,7 +149,7 @@ Processed frames are saved to:
 testdata/output_frames/
 ```
 
-Rebuild processed video:
+Rebuild processed video manually:
 
 ```bash
 ffmpeg -y -framerate 8 \
@@ -82,9 +158,11 @@ ffmpeg -y -framerate 8 \
     testdata/result_video.mp4
 ```
 
+---
+
 ## Processing Configuration
 
-The default configuration prioritizes stability and visual clarity for dynamic scenes:
+Default processing configuration:
 
 ```c
 cfg.enable_bad_pixel_correction = 1;
@@ -93,26 +171,66 @@ cfg.enable_normalize = 1;
 cfg.enable_contrast = 1;
 ```
 
-A spatial median 3x3 filter is used for denoising instead of temporal IIR filtering. This removes visible ghosting artifacts in moving scenes while still reducing image noise.
+Spatial median filtering is used instead of temporal filtering to avoid ghosting artifacts in dynamic scenes.
+
+---
+
+## Runtime Metrics
+
+The pipeline measures:
+
+- packet read time
+- pipeline processing time
+- frame export time
+- video reconstruction time
+- effective processing FPS
+- average processing time per frame
+- packet and frame statistics
+
+Example runtime output:
+
+```text
+Packets processed: XXXXX
+Frames ready: XXXXX
+Frames dropped: 0
+
+Pipeline FPS: XX.XX
+Avg pipeline/frame: X.XXX ms
+```
+
+---
 
 ## Implementation Notes
 
-- The system operates on a packetized data model compatible with a simplified VoSPI-like stream.
-- Frame reconstruction is separated from the data source, so the same pipeline can work with both an emulator and future SPI input.
-- The processing pipeline is designed for low-resource environments and can be adapted for ESP32-class devices.
-- Intermediate `.pgm` frame export is used for debugging, analysis, and final video reconstruction.
+- The project uses an emulated VoSPI-inspired packet format.
+- Frame reconstruction is independent from the packet source.
+- The architecture allows future SPI-based integration.
+- Processing modules are isolated from input transport logic.
+- Intermediate frame export simplifies debugging and testing.
+- The project is optimized for clarity and modularity rather than hardware-level performance.
 
-## Results
+---
 
-The pipeline successfully processes thermal video streams, reconstructs frames from packet data, applies spatial denoising and normalization, and produces a stable grayscale output video without temporal ghosting artifacts.
+## Current Limitations
+
+- No real SPI communication
+- No direct FLIR Lepton integration
+- Simplified packet header format
+- Desktop-only execution
+- No DMA or RTOS support
+
+---
 
 ## Future Work
 
-- Real VoSPI/SPI input implementation
-- ESP32 performance optimization
-- Adaptive filtering based on scene dynamics
-- DMA-based packet acquisition
-- Hardware-level integration with FLIR Lepton
+- Real SPI packet acquisition
+- ESP32 integration
+- Real FLIR Lepton support
+- DMA-based packet handling
+- Real-time optimization
+- Adaptive thermal filtering algorithms
+
+---
 
 ## License
 
