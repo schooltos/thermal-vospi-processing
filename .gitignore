@@ -1,17 +1,22 @@
-# build
+# Build outputs
 main
+video_to_stream
 *.o
+*.out
 
-# test data
+# Generated test data
 testdata/
-output/
+
+# Generated media / streams
+*.bin
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.pgm
 
 # macOS
 .DS_Store
 
-# ffmpeg outputs
-*.mp4
-*.bin
-
-# temp
+# Logs
 *.log
