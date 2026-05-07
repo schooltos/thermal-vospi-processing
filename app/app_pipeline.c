@@ -66,12 +66,12 @@ void app_pipeline_load_default_config(ProcessingConfig *cfg)
     cfg->enable_bad_pixel_correction = 1;
     cfg->enable_denoise = 1;
     cfg->enable_normalize = 1;
-    cfg->enable_contrast = 1;
+    cfg->enable_contrast = 0;
 
     cfg->use_percentile_normalization = 1;
     cfg->iir_alpha = 0.8f;
-    cfg->low_percentile = 2;
-    cfg->high_percentile = 98;
+    cfg->low_percentile = 1;
+    cfg->high_percentile = 99;
 }
 
 int app_pipeline_init(AppContext *ctx,
