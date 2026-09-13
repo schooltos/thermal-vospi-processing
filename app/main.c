@@ -11,6 +11,17 @@
 #define ENABLE_DEBUG_LOGS 0
 #define DEFAULT_OUTPUT_VIDEO_FPS 8
 
+static double get_monotonic_time_sec(void)
+{
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+        return 0.0;
+    }
+
+    return (double)ts.tv_sec + ((double)ts.tv_nsec / 1e9);
+}
+
 typedef enum {
     PROCESSING_PROFILE_DEFAULT = 0,
     PROCESSING_PROFILE_PEOPLE,
@@ -20,8 +31,8 @@ typedef enum {
 } ProcessingProfile;
 
 typedef struct {
-    clock_t total_start;
-    clock_t total_end;
+    double total_start;
+    double total_end;
 
     double read_time_sec;
     double pipeline_time_sec;
@@ -32,9 +43,9 @@ typedef struct {
     unsigned long frames_written;
 } RuntimeMetrics;
 
-static double clock_diff_sec(clock_t start, clock_t end)
+static double clock_diff_sec(double start, double end)
 {
-    return (double)(end - start) / (double)CLOCKS_PER_SEC;
+    return end - start;
 }
 
 static void metrics_init(RuntimeMetrics *metrics)
@@ -286,8 +297,8 @@ int main(int argc, char **argv)
     int read_status;
     int video_status;
 
-    clock_t t0;
-    clock_t t1;
+    double t0;
+    double t1;
 
     if (argc < 4) {
         printf("Usage: %s <stream.bin> <output_frames_dir> <output_video.mp4> [profile]\n",
@@ -324,12 +335,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    metrics.total_start = clock();
+    metrics.total_start = get_monotonic_time_sec();
 
     while (1) {
-        t0 = clock();
+        t0 = get_monotonic_time_sec();
         read_status = source_emulator_read_packet(&packet);
-        t1 = clock();
+        t1 = get_monotonic_time_sec();
 
         metrics.read_time_sec += clock_diff_sec(t0, t1);
 
@@ -361,14 +372,14 @@ int main(int argc, char **argv)
             break;
         }
 
-        t0 = clock();
+        t0 = get_monotonic_time_sec();
         status = app_pipeline_process_packet(&app, &packet, &out_frame);
-        t1 = clock();
+        t1 = get_monotonic_time_sec();
 
         metrics.pipeline_time_sec += clock_diff_sec(t0, t1);
 
         if (status == APP_PIPELINE_OK) {
-            t0 = clock();
+            t0 = get_monotonic_time_sec();
 
             if (output_image_write_pgm_indexed(output_frames_dir,
                                                out_frame.frame_number,
@@ -379,7 +390,7 @@ int main(int argc, char **argv)
                        (unsigned long)out_frame.frame_number);
             }
 
-            t1 = clock();
+            t1 = get_monotonic_time_sec();
             metrics.output_time_sec += clock_diff_sec(t0, t1);
 
         } else if (status < 0) {
@@ -389,15 +400,15 @@ int main(int argc, char **argv)
 
     source_emulator_deinit();
 
-    t0 = clock();
+    t0 = get_monotonic_time_sec();
     video_status = build_output_video(output_frames_dir,
                                       output_video_path,
                                       DEFAULT_OUTPUT_VIDEO_FPS);
-    t1 = clock();
+    t1 = get_monotonic_time_sec();
 
     metrics.video_build_time_sec = clock_diff_sec(t0, t1);
 
-    metrics.total_end = clock();
+    metrics.total_end = get_monotonic_time_sec();
 
     print_metrics(&app, &metrics);
 
