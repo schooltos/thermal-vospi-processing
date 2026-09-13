@@ -36,6 +36,50 @@
 #define TOOL_DEFAULT_FPS 8
 
 /*
+ * Створює батьківську директорію для вказаного файлового шляху,
+ * якщо вона ще не існує. Аналог ensure_directory_exists з app/main.c,
+ * але тут директорія береться з самого шляху до файлу, а не
+ * передається окремим аргументом.
+ */
+static void ensure_parent_directory_exists(const char *filepath)
+{
+    char dir_buf[900];
+    char command[1024];
+    size_t len;
+    size_t i;
+    size_t last_slash = (size_t)-1;
+
+    if (filepath == NULL) {
+        return;
+    }
+
+    len = strlen(filepath);
+    if (len >= sizeof(dir_buf)) {
+        return;
+    }
+
+    for (i = 0; i < len; i++) {
+        if ((filepath[i] == '/') || (filepath[i] == '\\')) {
+            last_slash = i;
+        }
+    }
+
+    if (last_slash == (size_t)-1) {
+        return;
+    }
+
+    memcpy(dir_buf, filepath, last_slash);
+    dir_buf[last_slash] = '\0';
+
+    if (dir_buf[0] == '\0') {
+        return;
+    }
+
+    snprintf(command, sizeof(command), "mkdir -p \"%s\"", dir_buf);
+    system(command);
+}
+
+/*
  * Формування VoSPI-подібного header.
  *
  * Поточний емуляційний формат:
@@ -249,6 +293,8 @@ int main(int argc, char **argv)
         (argc >= 4) ?
         parse_fps(argv[3]) :
         TOOL_DEFAULT_FPS;
+
+    ensure_parent_directory_exists(output_stream);
 
     /*
      * Команда ffmpeg:
